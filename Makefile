@@ -1,0 +1,8 @@
+default: all
+all: clean
+	g++ -Wall -Wextra -Weffc++ -Werror -O3 -o bplustree bplustree.cpp
+	strip bplustree
+clean:
+	rm -rf bplustree_dbg bplustree
+dbug: clean
+	g++ -Wall -Wextra -Weffc++ -Werror -O -g -DEBUG -o bplustree_dbg bplustree.cpp
