@@ -264,7 +264,12 @@ public:
 		return sequential_search(_key);
 	}
 
-	BplustreeNode *split();
+	BplustreeNode *split() {
+		if (is_leaf()) {
+			return split_leaf();
+		}
+		return split_index();
+	}
 
 	inline bool is_full() const {
 		return num_keys == max_children - 1;
@@ -288,8 +293,13 @@ public:
 	}
 private:
 // split helper functions
-	BplustreeNode *split_leaf();
-	BplustreeNode *split_index();
+	BplustreeNode *split_leaf() {
+		return 0;
+	}
+
+	BplustreeNode *split_index() {
+		return 0;
+	}
 
 	int sequential_search(const KEY &_key,bool match_exact = false) {
 		int slot = 0;
@@ -326,6 +336,22 @@ const int order;
 BplustreeNode *root;
 Comparator<KEY> key_compare;
 
+// A Stack (LIFO Data Structure) is used to store
+// parent nodes when searching for a leaf node to 
+// insert a key in the find_leaf() method of Bplustree.
+// This is important when a leaf node is split and the 
+// median key needs to be pushed to parent & in case the 
+// parent is too full & needs split etc., which goes up
+// till the root node which happens to be full a new root
+// node will be created to accomodate the split triggered
+// from the leaf node. Pop-ing from the stack returns
+// the immediate parent of the node in question & the
+// pop operation bottoms up to root whose parent is null.
+// Another way to do these things is to keep a parent pointer
+// in the BplustreeNode & keep the parent pointer reference
+// updated when ever the node split happens. I find using
+// stack is easy & quiet straight forward process to implement
+// the insert/split operation easily.
 class Stack {
 private:
 	struct Node {
