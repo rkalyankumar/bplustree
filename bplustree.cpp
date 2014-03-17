@@ -3,11 +3,11 @@
 #include <cstring>
 #include <cerrno>
 #include <cwchar>
-#include <cassert>
+//#include <cassert>
 #include <cstdio>
 #include <stdarg.h>
 
-#define UNUSED __attribute__ ((unused))
+#define UNUSED __attribute__((unused))
 
 #define BPLUSTREE_VERSION 0.1
 
@@ -135,7 +135,28 @@ public:
 	~Bplustree() {
 		destroy();
 	}
+
+	inline void print(std::ostream &out = std::cout) {
+		print_node(root,out);
+	}
 private:
+
+	inline void print_node(BplustreeNode *node,
+			std::ostream &out) {
+		if (node == 0) return;
+		if (node->is_leaf()) cout << "L: ";
+		else cout << "I: " ;
+		for (int i = 0 ;i < node->num_keys; i++) {
+			cout << "| " << node->keys[i] << " | ";
+		}
+		cout << endl;
+		if (!node->is_leaf()) {
+			for (int i = 0; i <= node->num_keys; i++) {
+				print_node(node->ptrs[i],out);
+			}
+		}
+	}
+
 // destroys the tree in top-down fashion recursively
 	inline void destroy(BplustreeNode *_node) {
 		if (_node == 0) return;
@@ -156,13 +177,16 @@ private:
 			Stack parent_nodes;
 			KEY median;
 			BplustreeNode *leaf_node = find_leaf(root,_key,parent_nodes);
-			assert(leaf_node != 0); // fail if leaf node can't be located
-			assert(leaf_node->is_leaf()); // fail if it's not a leaf node
+			//assert(leaf_node != 0); // fail if leaf node can't be located
+			//assert(leaf_node->is_leaf()); // fail if it's not a leaf node
 			if (!leaf_node->insert(_key,_value)) {
 				// split leaf_node
 				BplustreeNode *new_leaf = leaf_node->split(_key,_value,median);
 				// move up the median key
-				insert_to_parent(parent_nodes.pop(),median,leaf_node,new_leaf);
+				//cout << "Trying to insert median key to parent, key is: " << median  << endl;
+				BplustreeNode *parent = parent_nodes.pop();
+				insert_to_parent(parent,median,leaf_node,new_leaf,parent_nodes);
+				//cout << "After calling insert_to_parent()" << endl;
 			}
 		}
 	}
@@ -180,6 +204,7 @@ private:
 	void insert_to_parent(BplustreeNode *_parent,const KEY &_key,BplustreeNode *_left,
 		BplustreeNode *_right,Stack &_parents) {
 		if (_parent == 0) {
+			//cout << "Creating new root " << endl;
 			/* A new root node is created */
 			BplustreeNode *new_root = new BplustreeNode(order,false);
 			new_root->keys[0] = _key;
@@ -190,13 +215,17 @@ private:
 			/* recursion stops here */
 		} else {
 			if (!_parent->is_full()) {
+				//cout << "Inserting key " << _key << " to parent node " << _parent << endl;
 				_parent->insert(_key,_right);
 				/* recursion stops here */
 			} else {
 				KEY median;
+				//cout << "calling _parent->split()" << endl;
 				BplustreeNode *new_parent_level_node = _parent->split(_key,_left,_right,median);
 				/* recursively push the median key up to the parent */
-				insert_to_parent(_parents.pop(),median,_parent,new_parent_level_node,_parents);
+				//cout << "calling insert_to_parent() in the next line" << std::endl;
+				BplustreeNode *parent = _parents.pop();
+				insert_to_parent(parent,median,_parent,new_parent_level_node,_parents);
 			}
 		}
 	}
@@ -214,7 +243,7 @@ private:
 		while (node != 0 && !node->is_leaf()) {
 			i = 0;
 			while (i < node->num_keys) {
-				if (_key.compare(node->keys[i]) == 1) i++;
+				if (key_compare.compare(_key,node->keys[i]) == 1) i++;
 				else break;
 			}
 			node = node->ptrs[i];
@@ -224,6 +253,7 @@ private:
 		}
 		return node;
 	}
+
 class BplustreeNode {
 friend class Stack;
 friend class Bplustree<KEY,VALUE>;
@@ -231,15 +261,16 @@ private:
 	const int max_children;
 	bool leaf;
 	int num_keys;
-	KEY **keys;
-	VALUE **values;
+	KEY *keys;
+	VALUE *values;
 	BplustreeNode **ptrs; /*>! ptrs- stores max_children nodes if index 
 						   *>! ptrs- stores 2-nodes(prev & next) if leaf */
 	Comparator<KEY> key_compare;
 public:
 	explicit BplustreeNode(
 		int _max_children,bool _leaf = false) 
-			: max_children(_max_children),leaf(_leaf),key_compare() {
+			: max_children(_max_children),leaf(_leaf),
+			num_keys(0),keys(0),values(0),ptrs(0),key_compare() {
 		init();
 	}
 
@@ -277,7 +308,7 @@ public:
 		returns false if the node is full.
      */
 	bool insert(const KEY &_key,const VALUE &_value) {
-		assert(leaf); // fail if it's index
+		//assert(leaf); // fail if it's index
 		if (is_full()) {
 			return false; // no space left in node
 		}
@@ -301,7 +332,7 @@ public:
 		returns false if the node is full;
 	 */
 	bool insert(const KEY &_key,BplustreeNode *_node) {
-		assert(!leaf); // fail if it's leaf
+		//assert(!leaf); // fail if it's leaf
 		if (is_full()) {
 			return false; // no space left in node
 		}
@@ -332,10 +363,10 @@ public:
 		returns the new leaf node created during the split operation
 	 */
 	BplustreeNode *split(const KEY &_key,const VALUE &_value,KEY &_median) {	
-		assert(is_leaf()); // fail if it's not a leaf
+		//assert(is_leaf()); // fail if it's not a leaf
 		BplustreeNode *new_leaf = 0;
-		KEY *l_keys = new KEY[max_children];
-		VALUE *l_values = new VALUE[max_children];
+		KEY l_keys[max_children];
+		VALUE l_values[max_children];
 	
 		int slot = find_slot(_key);
 		int i = 0,j = 0;
@@ -356,10 +387,6 @@ public:
 
 	/* fix [0,max_children/2) entries to the current full node */
 		num_keys = 0;
-		delete [] keys;
-		delete [] values;
-		keys = new KEY[max_children - 1];
-		values = new VALUE[max_children - 1];
 		for (i = 0; i < split_pos; i++) {
 			keys[i] = l_keys[i];
 			values[i] = l_values[i];
@@ -378,8 +405,6 @@ public:
 	/* copy the median key that needs to be inserted upto the parent */
 		_median = new_leaf->keys[0];
 
-		delete [] l_keys;
-		delete [] l_values;
 		return new_leaf;
 	}
 
@@ -391,12 +416,12 @@ public:
 		parent node is essentially an index node
 		returns the new index node created by the split operation
 	 */
-	BplustreeNode *split(const KEY &_key,BplustreeNode *_left,
+	BplustreeNode *split(const KEY &_key,BplustreeNode *_left UNUSED,
 		BplustreeNode *_right,KEY &_median) {
-		assert(!is_leaf()); // fail if it's not an index
-		BplustreeNode *new_index = 0;
-		KEY *l_keys = new KEY[max_children];
-		BplustreeNode **l_ptrs = new BplustreeNode*[max_children + 1];
+		//assert(!is_leaf()); // fail if it's not an index
+		BplustreeNode *new_index = new BplustreeNode(max_children,false);
+		KEY l_keys[max_children];
+		BplustreeNode *l_ptrs[max_children + 1];
 		int i =0, j = 0,split_pos = 0;
 
 		if (max_children % 2 == 0) split_pos = max_children/2;
@@ -408,27 +433,27 @@ public:
 		}
 
 		for (i = 0,j = 0; i < max_children + 1; i++,j++) {
-			if (j == slot) j++;
+			if (j == slot + 1) j++;
 			l_ptrs[j] = ptrs[i];
 		}
 
 		l_ptrs[slot + 1] = _right;
 		l_keys[slot] = _key;
-		delete [] keys;
-		delete [] ptrs;
+		//delete [] keys;
+		//delete [] ptrs;
 		num_keys = 0;
 
-		keys = new KEY[max_children - 1];
-		ptrs = new BplustreeNode*[max_children];
+		//keys = new KEY[max_children - 1];
+		//ptrs = new BplustreeNode*[max_children];
 
-		for (i = 0; i < split_pos; i++) {
+		for (i = 0; i < split_pos - 1; i++) {
 			keys[i] = l_keys[i];
 			ptrs[i] = l_ptrs[i];
 			++num_keys;
 		}		
 		ptrs[i] = l_ptrs[i];
 		_median = l_keys[split_pos - 1];
-		new_index = new BplustreeNode(max_children,false);
+	//	cout << "spilt() index, _median: " << _median << endl;
 		for (++i,j = 0; i < max_children; i++,j++) {
 			new_index->ptrs[j] = l_ptrs[i];
 			new_index->keys[j] = l_keys[i];
@@ -436,62 +461,61 @@ public:
 		}
 		new_index->ptrs[j] = l_ptrs[i];
 
-		delete [] l_keys;
-		delete [] l_ptrs;
+	//	cout << "returning new_index: " << new_index << endl;
 		return new_index;
 	}
 
-	inline bool is_full() const {
-		return num_keys == max_children - 1;
-	}
-
-	/* 
-		deallocates all the memory.
-		called by destructor.
-		can be called explicitly as well.
-     */
-	void destroy() {
-		if (keys != 0) delete [] keys;
-		if (leaf && values != 0) delete [] values;
-		if (ptrs != 0) delete [] ptrs;
-		num_keys = -1;
-		leaf = false;
-	}
-
-	~BplustreeNode() {
-		destroy();
-	}
-private:
-	int sequential_search(const KEY &_key,bool match_exact = false) {
-		int slot = 0;
-		while (slot < num_keys 
-			&& key_compare.compare(_key,keys[slot]) == 1) slot++;
-		return slot;
-	}
-
-	int binary_search(const KEY &_key,bool match_exact = false) {
-		//TODO: Implement binary search
-		return -1;
-	}
-
-// constructor helper function
-	void init() {
-		num_keys = 0;
-		keys = new KEY[max_children - 1];
-		if (leaf) {
-			values = new VALUE[max_children - 1];
-			ptrs = new BplustreeNode*[2];
-		} else {
-			values = 0;
-			ptrs = new BplustreeNode*[max_children];
+		inline bool is_full() const {
+			return num_keys == max_children - 1;
 		}
-	}
-	inline void incr() { ++num_keys; }
-	inline void decr() { --num_keys; }
-// copy/assign disallowed
-	BplustreeNode(const BplustreeNode &);
-	const BplustreeNode &operator = (const BplustreeNode &);
-};
+
+		/* 
+			deallocates all the memory.
+			called by destructor.
+			can be called explicitly as well.
+		 */
+		void destroy() {
+			if (keys != 0) delete [] keys;
+			if (leaf && values != 0) delete [] values;
+			if (ptrs != 0) delete [] ptrs;
+			num_keys = -1;
+			leaf = false;
+		}
+
+		~BplustreeNode() {
+			destroy();
+		}
+	private:
+		int sequential_search(const KEY &_key,UNUSED bool match_exact = false) {
+			int slot = 0;
+			while (slot < num_keys 
+				&& key_compare.compare(_key,keys[slot]) == 1) slot++;
+			return slot;
+		}
+
+		int binary_search(const KEY &_key,bool match_exact = false) {
+			//TODO: Implement binary search
+			return -1;
+		}
+
+	// constructor helper function
+		void init() {
+			num_keys = 0;
+			keys = new KEY[max_children - 1];
+			if (leaf) {
+				values = new VALUE[max_children - 1];
+				ptrs = new BplustreeNode*[2];
+			} else {
+				values = 0;
+				ptrs = new BplustreeNode*[max_children];
+			}
+		}
+		inline void incr() { ++num_keys; }
+		inline void decr() { --num_keys; }
+	// copy/assign disallowed
+		BplustreeNode(const BplustreeNode &);
+		const BplustreeNode &operator = (const BplustreeNode &);
+	};
 
 const int order;
 BplustreeNode *root;
@@ -622,11 +646,27 @@ static void DBUG(const char *fmt,...) {
 
 int main(int argc,char **argv)
 {
-	std::ios::sync_with_stdio(false);
 	handle_options(argc,argv);
 	print_license();
 	DBUG("%s","Test");
-	Bplustree<int,int> tree;
+	Bplustree<int,int> tree(order);
+	tree.insert(1,1);
+	tree.insert(12,12);
+	tree.insert(10,10);
+	tree.insert(14,14);
+	tree.insert(11,11);
+	tree.insert(15,15);
+	tree.insert(13,13);
+	tree.insert(2,2);
+	tree.insert(5,5);
+	tree.insert(3,3);
+	tree.insert(4,4);
+	tree.insert(9,9);
+	tree.insert(16,16);
+	tree.insert(18,18);
+	tree.insert(6,6);
+	tree.insert(7,7);
+	tree.print();
 	return 0;
 }
-
+ 
