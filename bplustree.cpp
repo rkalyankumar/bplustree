@@ -428,6 +428,7 @@ public:
 		}		
 		ptrs[i] = l_ptrs[i];
 		_median = l_keys[split_pos - 1];
+		new_index = new BplustreeNode(max_children,false);
 		for (++i,j = 0; i < max_children; i++,j++) {
 			new_index->ptrs[j] = l_ptrs[i];
 			new_index->keys[j] = l_keys[i];
