@@ -3,7 +3,7 @@
 #include <cstring>
 #include <cerrno>
 #include <cwchar>
-//#include <cassert>
+#include <cassert>
 #include <cstdio>
 #include <stdarg.h>
 
@@ -177,16 +177,14 @@ private:
 			Stack parent_nodes;
 			KEY median;
 			BplustreeNode *leaf_node = find_leaf(root,_key,parent_nodes);
-			//assert(leaf_node != 0); // fail if leaf node can't be located
-			//assert(leaf_node->is_leaf()); // fail if it's not a leaf node
+			assert(leaf_node != 0); // fail if leaf node can't be located
+			assert(leaf_node->is_leaf()); // fail if it's not a leaf node
 			if (!leaf_node->insert(_key,_value)) {
 				// split leaf_node
 				BplustreeNode *new_leaf = leaf_node->split(_key,_value,median);
 				// move up the median key
-				//cout << "Trying to insert median key to parent, key is: " << median  << endl;
 				BplustreeNode *parent = parent_nodes.pop();
 				insert_to_parent(parent,median,leaf_node,new_leaf,parent_nodes);
-				//cout << "After calling insert_to_parent()" << endl;
 			}
 		}
 	}
@@ -204,7 +202,6 @@ private:
 	void insert_to_parent(BplustreeNode *_parent,const KEY &_key,BplustreeNode *_left,
 		BplustreeNode *_right,Stack &_parents) {
 		if (_parent == 0) {
-			//cout << "Creating new root " << endl;
 			/* A new root node is created */
 			BplustreeNode *new_root = new BplustreeNode(order,false);
 			new_root->keys[0] = _key;
@@ -215,15 +212,12 @@ private:
 			/* recursion stops here */
 		} else {
 			if (!_parent->is_full()) {
-				//cout << "Inserting key " << _key << " to parent node " << _parent << endl;
 				_parent->insert(_key,_right);
 				/* recursion stops here */
 			} else {
 				KEY median;
-				//cout << "calling _parent->split()" << endl;
 				BplustreeNode *new_parent_level_node = _parent->split(_key,_left,_right,median);
 				/* recursively push the median key up to the parent */
-				//cout << "calling insert_to_parent() in the next line" << std::endl;
 				BplustreeNode *parent = _parents.pop();
 				insert_to_parent(parent,median,_parent,new_parent_level_node,_parents);
 			}
@@ -308,7 +302,7 @@ public:
 		returns false if the node is full.
      */
 	bool insert(const KEY &_key,const VALUE &_value) {
-		//assert(leaf); // fail if it's index
+		assert(leaf); // fail if it's index
 		if (is_full()) {
 			return false; // no space left in node
 		}
@@ -332,7 +326,7 @@ public:
 		returns false if the node is full;
 	 */
 	bool insert(const KEY &_key,BplustreeNode *_node) {
-		//assert(!leaf); // fail if it's leaf
+		assert(!leaf); // fail if it's leaf
 		if (is_full()) {
 			return false; // no space left in node
 		}
@@ -363,7 +357,7 @@ public:
 		returns the new leaf node created during the split operation
 	 */
 	BplustreeNode *split(const KEY &_key,const VALUE &_value,KEY &_median) {	
-		//assert(is_leaf()); // fail if it's not a leaf
+		assert(is_leaf()); // fail if it's not a leaf
 		BplustreeNode *new_leaf = 0;
 		KEY l_keys[max_children];
 		VALUE l_values[max_children];
@@ -418,7 +412,7 @@ public:
 	 */
 	BplustreeNode *split(const KEY &_key,BplustreeNode *_left UNUSED,
 		BplustreeNode *_right,KEY &_median) {
-		//assert(!is_leaf()); // fail if it's not an index
+		assert(!is_leaf()); // fail if it's not an index
 		BplustreeNode *new_index = new BplustreeNode(max_children,false);
 		KEY l_keys[max_children];
 		BplustreeNode *l_ptrs[max_children + 1];
