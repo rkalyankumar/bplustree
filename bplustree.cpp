@@ -214,7 +214,7 @@ private:
 		while (node != 0 && !node->is_leaf()) {
 			i = 0;
 			while (i < node->num_keys) {
-				if (_key >= node->keys[i]) i++;
+				if (_key.compare(node->keys[i]) == 1) i++;
 				else break;
 			}
 			node = node->ptrs[i];
