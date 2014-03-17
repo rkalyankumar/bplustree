@@ -175,7 +175,7 @@ private:
 	KEY **keys;
 	VALUE **values;
 	BplustreeNode **ptrs; /*>! ptrs- stores max_children nodes if index 
-							>! ptrs- stores 2-nodes(prev & next) if leaf */
+						   *>! ptrs- stores 2-nodes(prev & next) if leaf */
 	Comparator<KEY> key_compare;
 public:
 	explicit BplustreeNode(
@@ -264,11 +264,76 @@ public:
 		return sequential_search(_key);
 	}
 
-	BplustreeNode *split() {
-		if (is_leaf()) {
-			return split_leaf();
+	/* 
+		split a full leaf node to two leaf nodes
+		keeps first half of max_children/2 in the current (this) node
+		moves second half of max_children/2 to the new leaf node
+		copies the median key that needs to be pushed up to the parent node
+		parent node is essentially an index node
+		returns the new leaf node created during the split operation
+	 */
+	BplustreeNode *split(const KEY &_key,const VALUE &_value,KEY &_median) {	
+		assert(is_leaf()); // fail if it's not a leaf
+		BplustreeNode *new_leaf = 0;
+		KEY *l_keys = new KEY[max_children];
+		VALUE *l_values = new VALUE[max_children];
+	
+		int slot = find_slot(_key);
+		int i = 0,j = 0;
+
+		for (i = 0,j = 0; i < num_keys; i++,j++) {
+			if (j == slot) j++;
+			l_keys[j] = keys[i];
+			l_values[j] = values[i];
 		}
-		return split_index();
+		l_keys[slot] = _key;
+		l_values[slot] = _value;		
+		new_leaf = new BplustreeNode(max_children,true);
+
+		int split_pos = 0;
+		if (max_children % 2 == 0) split_pos = max_children/2;
+		else split_pos = (max_children/2) + 1;
+
+	/* fix [0,max_children/2) entries to the current full node */
+		num_keys = 0;
+		delete [] keys;
+		delete [] values;
+		keys = new KEY[max_children - 1];
+		values = new VALUE[max_children - 1];
+		for (i = 0; i < split_pos; i++) {
+			keys[i] = l_keys[i];
+			values[i] = l_values[i];
+			++num_keys;
+		}
+	/* move [max_children/2,max_children) entries to new leaf node */
+		for (i = split_pos,j = 0; i < max_children; i++,j++) {
+			new_leaf->keys[j] = l_keys[i];
+			new_leaf->values[j] = l_values[i];
+			++new_leaf->num_keys;
+		}
+	/* fix prev, next pointers */
+		new_leaf->set_next(next());
+		set_next(new_leaf);
+		new_leaf->set_prev(this);
+	/* copy the median key that needs to be inserted upto the parent */
+		_median = new_leaf->keys[0];
+
+		delete [] l_keys;
+		delete [] l_values;
+		return new_leaf;
+	}
+
+	/*
+		splits a full index node to two index nodes
+		keeps first half of max_children/2 keys & ptrs in current (this) index node
+		moves second half of max_children/2 keys & ptrs to new_index node
+		copies median key that needs to be pushed up to the parent node
+		parent node is essentially an index node
+		returns the new index node created by the split operation
+	 */
+	BplustreeNode *split(const KEY &key,KEY &_median) {
+		assert(!is_leaf()); // fail if it's not an index
+		return 0;
 	}
 
 	inline bool is_full() const {
@@ -292,15 +357,6 @@ public:
 		destroy();
 	}
 private:
-// split helper functions
-	BplustreeNode *split_leaf() {
-		return 0;
-	}
-
-	BplustreeNode *split_index() {
-		return 0;
-	}
-
 	int sequential_search(const KEY &_key,bool match_exact = false) {
 		int slot = 0;
 		while (slot < num_keys 
@@ -335,23 +391,24 @@ private:
 const int order;
 BplustreeNode *root;
 Comparator<KEY> key_compare;
-
-// A Stack (LIFO Data Structure) is used to store
-// parent nodes when searching for a leaf node to 
-// insert a key in the find_leaf() method of Bplustree.
-// This is important when a leaf node is split and the 
-// median key needs to be pushed to parent & in case the 
-// parent is too full & needs split etc., which goes up
-// till the root node which happens to be full a new root
-// node will be created to accomodate the split triggered
-// from the leaf node. Pop-ing from the stack returns
-// the immediate parent of the node in question & the
-// pop operation bottoms up to root whose parent is null.
-// Another way to do these things is to keep a parent pointer
-// in the BplustreeNode & keep the parent pointer reference
-// updated when ever the node split happens. I find using
-// stack is easy & quiet straight forward process to implement
-// the insert/split operation easily.
+/*
+ A Stack (LIFO Data Structure) is used to store
+ parent nodes when searching for a leaf node to 
+ insert a key in the find_leaf() method of Bplustree.
+ This is important when a leaf node is split and the 
+ median key needs to be pushed to parent & in case the 
+ parent is too full & needs split etc., which goes up
+ till the root node which happens to be full a new root
+ node will be created to accomodate the split triggered
+ from the leaf node. Pop-ing from the stack returns
+ the immediate parent of the node in question & the
+ pop operation bottoms up to root whose parent is null.
+ Another way to do these things is to keep a parent pointer
+ in the BplustreeNode & keep the parent pointer reference
+ updated when ever the node split happens. I find using
+ stack is easy & quiet straight forward process to implement
+ the insert/split operation easily.
+*/
 class Stack {
 private:
 	struct Node {
