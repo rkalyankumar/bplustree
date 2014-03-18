@@ -652,6 +652,8 @@ int main(int argc,char **argv)
 	tree.insert(18,18);
 	tree.insert(6,6);
 	tree.insert(7,7);
+	tree.insert(8,8);
+	tree.insert(17,17);
 	tree.print();
 	return 0;
 }
