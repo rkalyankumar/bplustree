@@ -433,12 +433,7 @@ public:
 
 		l_ptrs[slot + 1] = _right;
 		l_keys[slot] = _key;
-		//delete [] keys;
-		//delete [] ptrs;
 		num_keys = 0;
-
-		//keys = new KEY[max_children - 1];
-		//ptrs = new BplustreeNode*[max_children];
 
 		for (i = 0; i < split_pos - 1; i++) {
 			keys[i] = l_keys[i];
@@ -447,15 +442,12 @@ public:
 		}		
 		ptrs[i] = l_ptrs[i];
 		_median = l_keys[split_pos - 1];
-	//	cout << "spilt() index, _median: " << _median << endl;
 		for (++i,j = 0; i < max_children; i++,j++) {
 			new_index->ptrs[j] = l_ptrs[i];
 			new_index->keys[j] = l_keys[i];
 			++new_index->num_keys;
 		}
 		new_index->ptrs[j] = l_ptrs[i];
-
-	//	cout << "returning new_index: " << new_index << endl;
 		return new_index;
 	}
 
