@@ -245,11 +245,12 @@ private:
 		bool found = false;
 		BplustreeNode *node = _node;
 		if (node == 0) return found;
-		int i = 0;
+		int i = 0,cmp = 0;
 		while (!node->is_leaf()) {
 			i = 0;
 			while (i < node->num_keys) {
-				if (key_compare.compare(_key,node->keys[i]) == 1) i++;
+				cmp = key_compare.compare(_key,node->keys[i]);
+				if (cmp >= 0) i++;
 				else break;
 			}
 			node = node->ptrs[i];
