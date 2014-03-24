@@ -241,7 +241,30 @@ private:
 	}
 
 // find helper function
-	bool find(BplustreeNode *_node,const KEY &_key,VALUE &_value);
+	bool find(BplustreeNode *_node,const KEY &_key,VALUE &_value) {
+		bool found = false;
+		BplustreeNode *node = _node;
+		if (node == 0) return found;
+		int i = 0;
+		while (!node->is_leaf()) {
+			i = 0;
+			while (i < node->num_keys) {
+				if (key_compare.compare(_key,node->keys[i]) == 1) i++;
+				else break;
+			}
+			node = node->ptrs[i];
+		}
+		assert(node->is_leaf());
+		for (i = 0;i < node->num_keys; i++) {
+			if (key_compare.compare(_key,node->keys[i]) == 0) {
+				found = true;
+				_value = node->values[i];
+				break;
+			}
+		}
+		return found;
+	}
+
 // find leaf function - used for insert/delete key-value functions
 	BplustreeNode *find_leaf(BplustreeNode *_node,const KEY &_key,Stack &parent_nodes) {
 		BplustreeNode *node = _node;
@@ -467,57 +490,57 @@ public:
 		return new_index;
 	}
 
-		inline bool is_full() const {
-			return num_keys == max_children - 1;
-		}
+	inline bool is_full() const {
+		return num_keys == max_children - 1;
+	}
 
-		/* 
-			deallocates all the memory.
-			called by destructor.
-			can be called explicitly as well.
-		 */
-		void destroy() {
-			if (keys != 0) delete [] keys;
-			if (leaf && values != 0) delete [] values;
-			if (ptrs != 0) delete [] ptrs;
-			num_keys = -1;
-			leaf = false;
-		}
+	/* 
+		deallocates all the memory.
+		called by destructor.
+		can be called explicitly as well.
+	*/
+	void destroy() {
+		if (keys != 0) delete [] keys;
+		if (leaf && values != 0) delete [] values;
+		if (ptrs != 0) delete [] ptrs;
+		num_keys = -1;
+		leaf = false;
+	}
 
-		~BplustreeNode() {
-			destroy();
-		}
-	private:
-		int sequential_search(const KEY &_key,UNUSED bool match_exact = false) {
-			int slot = 0;
-			while (slot < num_keys 
-				&& key_compare.compare(_key,keys[slot]) == 1) slot++;
-			return slot;
-		}
+	~BplustreeNode() {
+		destroy();
+	}
+private:
+	int sequential_search(const KEY &_key,UNUSED bool match_exact = false) {
+		int slot = 0;
+		while (slot < num_keys 
+			&& key_compare.compare(_key,keys[slot]) == 1) slot++;
+		return slot;
+	}
 
-		int binary_search(const KEY &_key,bool match_exact = false) {
-			//TODO: Implement binary search
-			return -1;
-		}
+	int binary_search(const KEY &_key,bool match_exact = false) {
+		//TODO: Implement binary search
+		return -1;
+	}
 
 	// constructor helper function
-		void init() {
-			num_keys = 0;
-			keys = new KEY[max_children - 1];
-			if (leaf) {
-				values = new VALUE[max_children - 1];
-				ptrs = new BplustreeNode*[2];
-			} else {
-				values = 0;
-				ptrs = new BplustreeNode*[max_children];
-			}
+	void init() {
+		num_keys = 0;
+		keys = new KEY[max_children - 1];
+		if (leaf) {
+			values = new VALUE[max_children - 1];
+			ptrs = new BplustreeNode*[2];
+		} else {
+			values = 0;
+			ptrs = new BplustreeNode*[max_children];
 		}
-		inline void incr() { ++num_keys; }
-		inline void decr() { --num_keys; }
+	}
+	inline void incr() { ++num_keys; }
+	inline void decr() { --num_keys; }
 	// copy/assign disallowed
-		BplustreeNode(const BplustreeNode &);
-		const BplustreeNode &operator = (const BplustreeNode &);
-	};
+	BplustreeNode(const BplustreeNode &);
+	const BplustreeNode &operator = (const BplustreeNode &);
+};
 
 const int order;
 BplustreeNode *root;
@@ -670,7 +693,14 @@ int main(int argc,char **argv)
 	tree.insert(7,7);
 	tree.insert(8,8);
 	tree.insert(17,17);
-	tree.print();
+//	tree.print();
+	int search_result = -1;
+	if (tree.find(15,search_result)) {
+		cout << "Found value for key 15: "<< search_result << endl;
+	}
+	if (tree.find(77,search_result)) {
+		cout << "Found value for key 77: " << search_result << endl;
+	}
 	return 0;
 }
  
