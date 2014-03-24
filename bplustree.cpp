@@ -22,6 +22,10 @@
 #include <cassert>
 #include <cstdio>
 #include <stdarg.h>
+#include <cctype>
+#include <limits>
+#include <algorithm>
+using std::max;
 
 #define UNUSED __attribute__((unused))
 
@@ -694,14 +698,7 @@ int main(int argc,char **argv)
 	tree.insert(7,7);
 	tree.insert(8,8);
 	tree.insert(17,17);
-//	tree.print();
-	int search_result = -1;
-	if (tree.find(15,search_result)) {
-		cout << "Found value for key 15: "<< search_result << endl;
-	}
-	if (tree.find(77,search_result)) {
-		cout << "Found value for key 77: " << search_result << endl;
-	}
+	tree.print();
 	return 0;
 }
  
